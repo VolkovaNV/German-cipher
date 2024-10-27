@@ -1,128 +1,83 @@
+from random import shuffle, choice
+from itertools import product, accumulate
+from numpy import floor, sqrt
 import tkinter as tk
-from tkinter import *
-from tkinter import messagebox
-import random
-import string
-import numpy as np
 
-window = Tk()
-window.title("Лабораторная №2 шифр")
-window.geometry("500x550")
+class Shifr:
+    def __init__(self, spoly, k, alph='ADFGVX'):
+        self.polybius = [element.upper() for element in spoly]
+        self.pdim = int(floor(sqrt(len(self.polybius))))
+        self.key = list(k.upper())
+        self.keylen = len(self.key)
+        self.alphabet = list(alph)
+        pairs = [p[0] + p[1] for p in product(self.alphabet, self.alphabet)]
+        self.encode = dict(zip(self.polybius, pairs))
+        self.decode = dict((v, k) for (k, v) in self.encode.items())
 
-# from pycipher import ADFGVX
+    def Zah1(self, msg):
+        chars = list(''.join([self.encode[c] for c in msg.upper() if c in self.polybius]))
+        colvecs = [(lett, chars[i:len(chars):self.keylen]) \
+                   for (i, lett) in enumerate(self.key)]
+        colvecs.sort(key=lambda x: x[0])
+        return ''.join([''.join(a[1]) for a in colvecs])
 
-# adfgvx = ADFGVX(key='PH0QG64MEA1YL2NOFDXKR3CVS5ZW7BJ9UTI8', keyword='GERMAN')
+    def Rah1(self, cod):
+        chars = [c for c in cod if c in self.alphabet]
+        sortedkey = sorted(self.key)
+        order = [self.key.index(ch) for ch in sortedkey]
+        originalorder = [sortedkey.index(ch) for ch in self.key]
+        base, extra = divmod(len(chars), self.keylen)
+        strides = [base + (1 if extra > i else 0) for i in order]
+        starts = list(accumulate(strides[:-1], lambda x, y: x + y))
+        starts = [0] + starts
+        ends = [starts[i] + strides[i] for i in range(self.keylen)]
+        cols = [chars[starts[i]:ends[i]] for i in originalorder]
+        pairs = []
+        for i in range((len(chars) - 1) // self.keylen + 1):
+            for j in range(self.keylen):
+                if i * self.keylen + j < len(chars):
+                    pairs.append(cols[j][i])
 
-ADFGVX = 'ADFGVX'
-alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
-random.seed(42) 
+        return ''.join([self.decode[pairs[i] + pairs[i + 1]] for i in range(0, len(pairs), 2)])
 
+def Inteface():
+    root = tk.Tk()
+    root.title("Лабораторная №2")
+    text_label = tk.Label(root, text="Сообщение:")
+    text_label.grid(row=0, column=0)
+    key_label = tk.Label(root, text="Ключ:")
+    key_label.grid(row=1, column=0)
+    result_label = tk.Label(root, text="Рузультат:")
+    result_label.grid(row=3, column=0)
+    text_entry = tk.Entry(root)
+    text_entry.grid(row=0, column=1)
+    key_entry = tk.Entry(root)
+    key_entry.grid(row=1, column=1)
+    Res = tk.Text(root, height=5, width=50)
+    Res.grid(row=3, column=1)
 
-# table = [
-#     ['A', 'B', 'C', 'D', 'E', 'F'],
-#     ['G', 'H', 'I', 'J', 'K', 'L'],
-#     ['M', 'N', 'O', 'P', 'Q', 'R'],
-#     ['S', 'T', 'U', 'V', 'W', 'X'],
-#     ['Y', 'Z', '0', '1', '2', '3'],
-#     ['4', '5', '6', '7', '8', '9']
-# ]
+    encrypt_button = tk.Button(root, text="Зашифровать", command=lambda: Zah2(text_entry.get(), key_entry.get(), Res))
+    encrypt_button.grid(row=2, column=0)
+    decrypt_button = tk.Button(root, text="Расшифровать", command=lambda: Rah2(text_entry.get(), key_entry.get(), Res))
+    decrypt_button.grid(row=2, column=1)
 
-# ADFGVX = 'ADFGVX'
-# polybius_square = {
-#     'A': 'ph0qg64mea1yl2nofdzxr3bvs5t7c8uk9w',
-#     'D': 'a1yl2nofdzxr3bvs5t7c8uk9wph0qg64mea',
-#     'F': 'l2nofdzxr3bvs5t7c8uk9wph0qg64mea1y',
-#     'G': 'nofdzxr3bvs5t7c8uk9wph0qg64mea1yl2',
-#     'V': 'ofdzxr3bvs5t7c8uk9wph0qg64mea1yl2n',
-#     'X': 'dzxr3bvs5t7c8uk9wph0qg64mea1yl2nof'
-# }
+    root.mainloop()
 
-def generate_polybius_square():
-    shuffled = list(alphabet)
-    random.shuffle(shuffled)
-    return {ADFGVX[i]: shuffled[i*6:(i+1)*6] for i in range(6)}
+def Zah2(text, key, Res):
+    adfgvx = Shifr(PCHARS, key)
+    encrypted_text = adfgvx.Zah1(text)
+    Res.delete(1.0, tk.END)
+    Res.insert(tk.END, encrypted_text)
 
-polybius_square = generate_polybius_square()
-
-
-def Zah():
-    global n
-    message = e.get() 
-    key = n.get()
-
-    # validate_key(key)
-    message = message.lower().replace(" ", "")
-    encrypted = ''
-    for char in message:
-        for row in ADFGVX:
-            if char in polybius_square[row]:
-                col = ADFGVX[polybius_square[row].index(char)]
-                encrypted += row + col
-                break
-
-    n = len(encrypted)
-    key_len = len(key)
-    padding_length = key_len - (n % key_len)
-    encrypted += 'x' * padding_length  # Добавление символов-заполнителей
-    sorted_key_indices = sorted(range(len(key)), key=lambda k: key[k])
-    sorted_columns = [''] * key_len
-
-    for i in range(key_len):
-        sorted_columns[sorted_key_indices[i]] = encrypted[i::key_len]
-            
-    txt['text'] = ''.join(sorted_columns)
-    print(''.join(sorted_columns))
-
-
-def Rah():
-    global n
-    ciphertext = e.get()
-    key = n.get()
-    
-    key_len = len(key)
-    sorted_key_indices = sorted(range(len(key)), key=lambda k: key[k])
-    n = len(ciphertext) // key_len
-    sorted_columns = [''] * key_len
-
-    idx = 0
-    for i in sorted_key_indices:
-        sorted_columns[i] = ciphertext[idx:idx+n]
-        idx += n
-
-    decrypted = ''
-    for i in range(n):
-        for j in range(key_len):
-            decrypted += sorted_columns[j][i]
-
-    decoded = ''
-    for i in range(0, len(decrypted), 2):
-        row = decrypted[i]
-        col = decrypted[i+1]
-        if row in polybius_square and col in ADFGVX:
-            decoded += polybius_square[row][ADFGVX.index(col)]
-
-    txt['text'] = decoded
-
-Label( text = "Введите  сообщение: ").pack()
-e = Entry( width=90, bd=50)
-e.pack()
-e.focus_set()
-Label( text = "Введите  ключ: ").pack()
-n = Entry( width=90, bd=50)
-n.pack()
-n.focus_set()
-go = Button( text = "Зашифровать",command=Zah )
-go.pack()
-go1 = Button( text = "Расшифровать",command=Rah)
-go1.pack()
+def Rah2(text, key, Res):
+    adfgvx = Shifr(PCHARS, key)
+    decrypted_text = adfgvx.Rah1(text)
+    Res.delete(1.0, tk.END)
+    Res.insert(tk.END, decrypted_text)
 
 
-# B1.bind("<Button>", Zah)
-#Button(window, text='Выйти', command=window.destroy).pack()
-txt = Label(window, text="Результат", height=10, width=60)
-txt.pack()
+PCHARS = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+shuffle(PCHARS)
 
-# go.bind("<Button>", command = FixedSubstitutionCipher)
-#GBACGFGFMSECMSMFGFAD secret hello world
+Inteface()
 
-window.mainloop()
